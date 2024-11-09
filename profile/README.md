@@ -1,7 +1,7 @@
 ## Anderson Templates Revit
 - ⚠️Templates para projetos no REVIT
 - 🎯 Soluções inovadoras
-- 🚀 Projeto mais rápido e com mais qualidade
+- 🚀 Projete mais rápido e com mais qualidade
 
 <!--
 **Here are some ideas to get you started:**
