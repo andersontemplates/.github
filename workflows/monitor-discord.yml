@@ -1,0 +1,61 @@
+name: Monitoramento Discord
+
+on:
+  issues:
+    types: [opened, closed, reopened]
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [opened, closed, reopened, merged]
+  release:
+    types: [published]
+  workflow_run:
+    types: [completed]
+  push:
+
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Definir mensagem do evento
+        id: set-message
+        run: |
+          EVENT_NAME="${{ github.event_name }}"
+          ACTION="${{ github.event.action || 'completed' }}"
+          MESSAGE="📢 Novo evento: $EVENT_NAME ($ACTION)"
+
+          case $EVENT_NAME in
+            issues)
+              MESSAGE="🐛 Issue *${{ github.event.issue.title }}* foi $ACTION por ${{ github.actor }}"
+              ;;
+            issue_comment)
+              MESSAGE="🗨️ Novo comentário em *${{ github.event.issue.title }}* por ${{ github.actor }}:\n> ${{ github.event.comment.body }}"
+              ;;
+            pull_request)
+              TITLE="${{ github.event.pull_request.title }}"
+              URL="${{ github.event.pull_request.html_url }}"
+              if [[ "$ACTION" == "closed" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
+                MESSAGE="✅ PR *$TITLE* foi *mergeado* por ${{ github.actor }}\n🔗 $URL"
+              else
+                MESSAGE="📥 PR *$TITLE* foi $ACTION por ${{ github.actor }}\n🔗 $URL"
+              fi
+              ;;
+            release)
+              MESSAGE="🚀 Nova release publicada: *${{ github.event.release.name }}*\n${{ github.event.release.html_url }}"
+              ;;
+            workflow_run)
+              STATUS="${{ github.event.workflow_run.conclusion }}"
+              MESSAGE="⚙️ Workflow *${{ github.event.workflow_run.name }}* $STATUS para ${{ github.repository }}\n🔗 ${{ github.event.workflow_run.html_url }}"
+              ;;
+            push)
+              MESSAGE="🚀 Push feito em *${{ github.ref_name }}* por ${{ github.actor }}\n🔗 https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+              ;;
+          esac
+
+          echo "message=$MESSAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Enviar para o Discord
+        uses: Ilshidur/action-discord@master
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          message: ${{ steps.set-message.outputs.message }}
